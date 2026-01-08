@@ -1,8 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"html/template"
 	"net/http"
+
+	_ "github.com/lib/pq"
 )
 
 type Products struct {
@@ -12,9 +15,23 @@ type Products struct {
 	Quantity    int
 }
 
+func connectionDB() *sql.DB {
+	connection := "user=maxter dbname=store password=admin host=localhost sslmode=disable"
+
+	db, err := sql.Open("postgres", connection)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return db
+}
+
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func main() {
+	db := connectionDB()
+	defer db.Close()
+
 	http.HandleFunc("/", index)
 	http.ListenAndServe(":8080", nil)
 }
