@@ -9,7 +9,8 @@ import (
 )
 
 type Products struct {
-	Nome        string
+	Id          int
+	Name        string
 	Description string
 	Price       float64
 	Quantity    int
@@ -29,19 +30,40 @@ func connectionDB() *sql.DB {
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func main() {
-	db := connectionDB()
-	defer db.Close()
-
 	http.HandleFunc("/", index)
 	http.ListenAndServe(":8080", nil)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	products := []Products{
-		{Nome: "T-Shirt", Description: "Blue", Price: 50, Quantity: 5},
-		{"Shoes", "Red", 100, 2},
-		{"New Product", "Promotion", 57, 1},
+	db := connectionDB()
+
+	getAllProducts, err := db.Query("select * from products")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	p := Products{}
+	products := []Products{}
+
+	for getAllProducts.Next() {
+		var id, quantity int
+		var name, description string
+		var price float64
+
+		err = getAllProducts.Scan(&id, &name, &description, &price, &quantity)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		p.Name = name
+		p.Description = description
+		p.Price = price
+		p.Quantity = quantity
+
+		products = append(products, p)
 	}
 
 	templates.ExecuteTemplate(w, "Index", products)
+
+	defer db.Close()
 }
